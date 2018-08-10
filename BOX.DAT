@@ -1,0 +1,54 @@
+wallpaperm1024m1024.raw  1
+1024 1024
+paper2m_512m_512.raw 1
+512 512
+burloakm1024m1024.raw 1
+1024 1024
+collage-colour.bmp 1
+512 512
+collage-spec2.bmp 1
+512 512
+collage-normal.bmp 1
+512 512
+rockwall-colour.bmp 1
+512 512
+rockwall-normal.bmp 1
+256 256
+end of texture
+4 6 0 7	// Number of Vertices, texture, spec, normal maps (enter 0 if no spec and normal exist)
+0 0 0	0 0	// Vertex 0 : x,y,z  Vertices are ordered clockwise, if you are facing the front of the polygon.
+0 -200 0 0 512 // Vertex 1 : x,y,z
+200 -200 0 512 512 // Vertex 2 : x,y,z
+200 0 0	512 0// Vertex 3 : x,y,z 
+0.1 0 0 // RGB Colour - in range 0-1
+4 3 4 5	// Number of Vertices
+0 0 0	0 0	// etc
+0 0 200 0 512
+0 -200 200 512 512
+0 -200 0 512 0
+0 0 0.1
+4 0 0 0
+0 0 0 0 0 
+200 0 0 0 512 
+200 0 200 512 512 
+0 0 200 512 0
+0.1 0 0
+4 1 0 0
+0 0 200 0 0 
+200 0 200   0 512 
+200 -200 200 512 512
+0 -200 200  512 0
+0 0.1 0
+4 2 0 0
+200 -200 0  0 0 
+200 -200 200 0 512 
+200 0 200 512 512 
+200 0 0 512 0
+0 0 0.1
+4 3 4 5
+0 -200 200 0 0
+200 -200 200 0 512 
+200 -200 0  512 512 
+0 -200 0 512 0
+0.1 0 0
+0		// Zero in Number of vertices field indicates end of file

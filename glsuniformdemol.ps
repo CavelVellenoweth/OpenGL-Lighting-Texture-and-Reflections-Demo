@@ -1,0 +1,146 @@
+#version 150
+//uniform float shade;//not used at present
+uniform sampler2D mytexture;
+uniform sampler2D myspecmap;
+uniform sampler2D mynormalmap;
+uniform vec3 ambient;//for later
+uniform vec3 direct;
+uniform vec3 lightpos;
+uniform bool hasspec;
+uniform bool hasnormal;
+in vec3 cshade;
+in vec3 v_o;
+in vec3 locallight_o;
+in vec3 n;
+in vec2 tc_out;
+in vec4 gl_FragCoord;
+
+out vec4 pixelcolour;
+
+
+//uniform vec2 TexMapSize;
+
+float getLOD( vec2 dtx, vec2 dty );
+float frexp( float x, out float e );
+vec4 bilinear(int LOD,vec2 tcoords);
+
+
+void main( )
+{
+	float shadescale;
+	vec3 vn,l,ln,nn,h,dlight;
+	vec3 textureshade;
+	vec3 specularcolour;
+	vec2 dtx = dFdx( tc_out );
+	vec2 dty = dFdy( tc_out );
+	float fLOD=getLOD(dtx,dty);
+	int iLOD=int(floor(fLOD));
+	float fracLOD= fLOD-iLOD;
+
+	if(hasspec == true)
+	{
+		specularcolour = texelFetch(myspecmap,ivec2(tc_out),0).rgb;
+	}
+
+//if(gl_FragCoord.x > 462 && gl_FragCoord.x < 562 && gl_FragCoord.y > 200 && gl_FragCoord.y < 300 )
+//		{
+//			textureshade = (bilinear(iLOD,tc_out)*(1.0-fracLOD)+bilinear(iLOD+1,tc_out)*fracLOD).rgb;
+//		} //texture distort in center of screen
+//		else
+	//textureshade = (bilinear(iLOD,tc_out)*(1.0-fracLOD)+bilinear(iLOD+1,tc_out)*fracLOD).rgb;
+	//textureshade = bilinear(iLOD,tc_out).rgb;
+	//textureshade=texelFetch(mytexture,ivec2(tc_out)>>iLOD,iLOD).rgb;
+		textureshade=texelFetch(mytexture,ivec2(tc_out),0).rgb;
+		
+		
+	vn=normalize(v_o);
+	if(hasnormal == true)
+	{
+		vn = normalize(texelFetch(mynormalmap,ivec2(tc_out),0) *2 - 1).rgb;
+	}
+  	ln=normalize(locallight_o);//light comes from camera position
+//	ln=normalize(lightpos); //light in fixed position
+
+	h=vn-ln;//light direction shines from source to object
+    h=normalize(h); 
+    nn=normalize(n);
+    shadescale= dot(h,nn);//inward normal
+    if (shadescale<0)
+		shadescale=0;
+    shadescale*=shadescale;
+	shadescale*=shadescale;
+	float diffuseshadescale=dot(-ln,nn);
+	if (diffuseshadescale<0)diffuseshadescale=0;
+	
+	// Get pixel colour from input shade
+//		pixelcolour = vec4( cshade*shadescale+ textureshade*diffuseshadescale, 1.0 );
+//		pixelcolour = vec4( ambient*cshade*1+ ambient*textureshade*1, 1 ); //ambient only		
+//		pixelcolour = vec4( direct*cshade*shadescale+ direct*textureshade*diffuseshadescale, 1.0 ); //direct only
+		pixelcolour = vec4( (ambient*cshade*1+ ambient*textureshade*1)+(direct*cshade*shadescale+ direct*textureshade*diffuseshadescale), 1 ); //direct + ambient
+
+		if(hasspec == true)
+		{
+			pixelcolour = vec4((ambient*specularcolour*1+ ambient*textureshade*1)+ (direct*specularcolour*shadescale+ direct*textureshade*diffuseshadescale), 1 ); //direct + ambient using spec map
+		}
+		
+//		if(gl_FragCoord.x > 462 && gl_FragCoord.x < 562 && gl_FragCoord.y > 200 && gl_FragCoord.y < 300 )
+//		{
+//			pixelcolour = vec4(1 - pixelcolour.r, 1 - pixelcolour.g, 1 - pixelcolour.b, pixelcolour.a);
+//		} //colour distort in center of screen
+//		pixelcolour = vec4(float(iLOD)/10,0.0,0.0,1.0); //Coloured MIPMAP?
+
+		
+
+		
+	
+}
+float frexp( float x, out float e )
+{
+   e = ceil( log2( x ) );
+   return( x * exp2( -e ) );
+}
+
+float getLOD( vec2 dtx, vec2 dty )
+{
+	// Get partial derivates
+
+
+	// Work out diagonals
+	float fTx = dtx.x + dty.x;
+	float fTy = dtx.y + dty.y;
+	float fXd = fTx * fTx + fTy * fTy;
+	//fXd is first diagonal distance (1,1)
+	fTx = dtx.x - dty.x;
+	fTy = dtx.y - dty.y;
+	float fYd = fTx * fTx + fTy * fTy;
+	//fYd is second diagonal distance (1,-1)
+
+	float fpixelDiff = max( fXd, fYd );
+
+	
+	// Work out Level of Detail & compensate for not taking square root
+	float LOD = log2( fpixelDiff / 2 ) / 2;
+
+	LOD = max(LOD, 0.0);
+	return (LOD);
+}
+vec4 bilinear(int LOD,vec2 tcoords)
+{
+	vec2 cscal=(tcoords)*exp2(-LOD);//get the lower value note that his will mpy x by x and y by y
+	vec2 lo=floor(cscal);//get the lower value note that his will mpy x by x and y by y
+	vec2 frac=cscal-lo;
+	float w0=frac.x*frac.y;
+	float w1=(1.0-frac.x)*frac.y;
+	float w2=frac.x*(1.0-frac.y);
+	float w3=(1.0-frac.x)*(1.0-frac.y);
+	ivec2 cd=ivec2(lo);
+	vec4 c3= texelFetch(mytexture,cd,LOD) *w3;
+	cd.x+=1;//increment by 1 scaled texel
+	vec4 c2= texelFetch(mytexture,cd,LOD)*w2;
+	cd.y+=1;//increment by 1 scaled texel	
+	vec4 c0= texelFetch(mytexture,cd,LOD)*w0;
+	cd.x-=1;//now undo the x to get the last one
+	vec4 c1= texelFetch(mytexture,cd,LOD)*w1;
+	return c3+c1+c2+c0;
+}
+
